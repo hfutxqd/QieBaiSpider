@@ -4,6 +4,7 @@ import urllib.error
 import http.cookiejar
 import time
 import json
+import os
 from pyquery import PyQuery as pq
 from lxml import etree
 
@@ -22,6 +23,28 @@ def urlFormat(url):
     elif str(url).startswith('http://') or str(url).startswith('https://'):
         return url
     return baseUrl
+
+
+def pullDetail(url) :
+
+    pos = str(url).rfind('/')
+    id = str(url)[pos + 1 : -1]
+    filename = "./articles/" + str(id) + ".json"
+    if os.path.exists(filename):
+        return None
+    request = urllib.request.Request(url, headers=header)
+    response = urllib.request.urlopen(request)
+    doc = pq(response.read())
+    article = {'content': doc('.content').text(), 'images': []}
+    images = doc('.thumb img')
+    for i in range(images.size()) :
+        image = {'url': urlFormat(images.eq(i).attr('src')), 'alt': images.eq(i).attr('alt')}
+        article['images'].append(image)
+
+    fhandle = open(filename, "w")
+    fhandle.write(json.dumps(article))
+    fhandle.close()
+    time.sleep(0.8)
 
 
 for index in range(10):
@@ -47,9 +70,10 @@ for index in range(10):
             imaTag = imgTags.eq(j)
             img = {'url': urlFormat(imaTag.attr('src')), 'alt': imaTag.attr('alt')}
             a['image'].append(img)
+        pullDetail(a['url'])
         articleList.append(a)
 
-    fhandle = open("./" + str(index) + ".json", "w")
+    fhandle = open("./pages/" + str(page) + ".json", "w")
     fhandle.write(json.dumps(articleList))
     fhandle.close()
-    time.sleep(1)
+    time.sleep(0.8)
